@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FaithNotes AI</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<style>
+  :root{
+    --navy:#1E2A44;
+    --navy-light:#2E3E60;
+    --parchment:#F7F2E6;
+    --parchment-dark:#EFE7D4;
+    --ribbon:#7C2A2A;
+    --ribbon-dark:#5E1F1F;
+    --gold:#B8894A;
+    --ink:#2A2A26;
+    --ink-soft:#5B5A52;
+    --line:#D9CFB8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--parchment);
+    color:var(--ink);
+    font-family:'Georgia', 'Iowan Old Style', serif;
+  }
+  header{
+    background:var(--navy);
+    color:var(--parchment);
+    padding:22px 28px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  header .brand{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  header h1{
+    font-size:22px;
+    margin:0;
+    font-weight:normal;
+    letter-spacing:0.5px;
+  }
+  header .tag{
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    font-size:12px;
+    color:#C9B98A;
+    letter-spacing:1px;
+    text-transform:uppercase;
+  }
+  header .verse{
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    font-size:12px;
+    color:#9FAEC9;
+    font-style:italic;
+  }
+  main{
+    max-width:1180px;
+    margin:0 auto;
+    padding:28px;
+    display:grid;
+    grid-template-columns:1fr;
+    gap:20px;
+  }
+  @media(min-width:960px){
+    main{grid-template-columns:420px 1fr;align-items:start;}
+  }
+  .panel{
+    background:#FFFDF7;
+    border:1px solid var(--line);
+    border-radius:2px;
+  }
+  .panel-input{
+    padding:0;
+    overflow:hidden;
+  }
+  .ribbon-tabs{
+    display:flex;
+    background:var(--parchment-dark);
+    border-bottom:1px solid var(--line);
+  }
+  .ribbon-tab{
+    flex:1;
+    padding:12px 14px;
+    text-align:center;
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    font-size:12.5px;
+    letter-spacing:0.4px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    cursor:pointer;
+    border:none;
+    background:transparent;
+    position:relative;
+  }
+  .ribbon-tab.active{
+    color:var(--parchment);
+    background:var(--ribbon);
+  }
+  .ribbon-tab.active::after{
+    content:"";
+    position:absolute;
+    bottom:-8px;
+    left:calc(50% - 8px);
+    border-left:8px solid transparent;
+    border-right:8px solid transparent;
+    border-top:8px solid var(--ribbon-dark);
+  }
+  .input-body{
+    padding:20px 20px 22px;
+  }
+  .field-label{
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.8px;
+    color:var(--ink-soft);
+    margin:14px 0 6px;
+    display:block;
+  }
+  .field-label:first-child{margin-top:0;}
+  textarea{
+    width:100%;
+    min-height:110px;
+    resize:vertical;
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    font-size:13.5px;
+    line-height:1.5;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:2px;
+    background:var(--parchment);
+    color:var(--ink);
+  }
+  textarea:focus{outline:1px solid var(--gold);}
+  .helper{
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:14px;
+    line-height:1.5;
+  }
+  button.generate{
+    margin-top:18px;
+    width:100%;
+    padding:13px;
+    background:var(--navy);
+    color:var(--parchment);
+    border:none;
+    border-radius:2px;
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    font-size:13px;
+    letter-spacing:0.6px;
+    text-transform:uppercase;
+    cursor:pointer;
+  }
+  button.generate:hover{background:var(--navy-light);}
+  button.generate:disabled{background:#9C9585;cursor:default;}
+  .panel-output{
+    padding:28px 34px;
+    min-height:400px;
+  }
+  .empty-state{
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    color:var(--ink-soft);
+    font-size:14px;
+    text-align:center;
+    padding:80px 20px;
+    line-height:1.6;
+  }
+  .empty-state .mark{
+    font-family:Georgia,serif;
+    font-size:34px;
+    color:var(--gold);
+    display:block;
+    margin-bottom:14px;
+  }
+  .loading{
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    color:var(--ink-soft);
+    font-size:13px;
+    text-align:center;
+    padding:80px 20px;
+  }
+  .error-box{
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    font-size:13px;
+    background:#FBEAE7;
+    border:1px solid var(--ribbon);
+    color:var(--ribbon-dark);
+    padding:14px 16px;
+    border-radius:2px;
+    margin-bottom:18px;
+  }
+  .output-content h1{
+    font-size:24px;
+    color:var(--navy);
+    border-bottom:2px solid var(--gold);
+    padding-bottom:10px;
+    margin:0 0 20px;
+  }
+  .output-content h2{
+    font-size:17px;
+    color:var(--ribbon-dark);
+    margin:30px 0 10px;
+    font-weight:normal;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    font-family:'Helvetica Neue', Arial, sans-serif;
+  }
+  .output-content h2::before{
+    content:"— ";
+    color:var(--gold);
+  }
+  .output-content h3{
+    font-size:15px;
+    color:var(--ink);
+    margin:18px 0 6px;
+  }
+  .output-content p{
+    font-size:15px;
+    line-height:1.75;
+    color:var(--ink);
+    margin:0 0 12px;
+  }
+  .output-content ul, .output-content ol{
+    padding-left:22px;
+    margin:0 0 14px;
+  }
+  .output-content li{
+    font-size:14.5px;
+    line-height:1.7;
+    margin-bottom:6px;
+  }
+  .output-content strong{color:var(--navy);}
+  .output-content blockquote{
+    margin:10px 0;
+    padding:10px 16px;
+    border-left:3px solid var(--gold);
+    background:var(--parchment-dark);
+    font-style:italic;
+    color:var(--ink-soft);
+  }
+  .output-content hr{
+    border:none;
+    border-top:1px solid var(--line);
+    margin:24px 0;
+  }
+  .output-content table{
+    width:100%;
+    border-collapse:collapse;
+    margin-bottom:16px;
+    font-size:13.5px;
+  }
+  .output-content th, .output-content td{
+    border:1px solid var(--line);
+    padding:8px 10px;
+    text-align:left;
+  }
+  .output-content th{
+    background:var(--parchment-dark);
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+  }
+  .actions-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+    flex-wrap:wrap;
+  }
+  .actions-row button{
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    font-size:12px;
+    padding:8px 14px;
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--ink-soft);
+    border-radius:2px;
+    cursor:pointer;
+  }
+  .actions-row button:hover{border-color:var(--gold);color:var(--navy);}
+  footer{
+    text-align:center;
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    padding:20px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>FaithNotes</h1>
+    <span class="tag">AI Study Assistant</span>
+  </div>
+  <span class="verse">"Study to shew thyself approved unto God" — 2 Timothy 2:15</span>
+</header>
+
+<main>
+  <div class="panel panel-input">
+    <div class="ribbon-tabs">
+      <button class="ribbon-tab active" data-mode="summary">Study Notes</button>
+      <button class="ribbon-tab" data-mode="youtube">Lecture Check</button>
+    </div>
+    <div class="input-body">
+      <label class="field-label" id="notesLabel">Class notes</label>
+      <textarea id="classNotes" placeholder="Paste or type your class notes here..."></textarea>
+
+      <label class="field-label" id="lectureLabel">Lecture transcript</label>
+      <textarea id="lectureTranscript" placeholder="Paste the lecture transcript here (optional)..."></textarea>
+
+      <p class="helper" id="modeHelper">
+        Combines your notes and the lecture into one clean, organised study guide — summary, key points, Bible references, definitions, quiz, flashcards, and more.
+      </p>
+
+      <button class="generate" id="generateBtn">Generate study notes</button>
+    </div>
+  </div>
+
+  <div class="panel panel-output">
+    <div id="outputArea">
+      <div class="empty-state">
+        <span class="mark">&#10013;</span>
+        Paste your class notes, or notes plus a lecture transcript,<br>then generate to receive an organised study guide,<br>Bible references, flashcards, and a revision quiz.
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>FaithNotes AI is a study aid, not a source of doctrine. Always weigh it against Scripture and your instructors.</footer>
+
+<script>
+const SYSTEM_PROMPT = `You are FaithNotes AI.
+
+Your purpose is to help Bible college students understand and organize their class notes.
+
+You are NOT a preacher. You are NOT a theologian creating new doctrine. You are a study assistant.
+
+Rules:
+- Never invent doctrine.
+- Always stay faithful to Scripture.
+- If multiple interpretations exist, state them fairly.
+- Never claim certainty where Christians disagree.
+- Always separate Fact, Interpretation, and Opinion.
+- When Bible verses are quoted, maintain accuracy. Never hallucinate references.
+- When information is uncertain, say "I am not confident enough to answer."
+- Always prioritize in this order: Scripture, then Class Notes, then Lecture.
+
+Tone: humble, encouraging, academic, biblical, clear, simple.
+Never sensationalize. Never exaggerate. Never use prosperity theology. Never manipulate emotions.
+
+Output should always help the student revise efficiently. Respond only in well-formatted Markdown, with no preamble before or after.`;
+
+const SUMMARY_PROMPT = `Read the uploaded class notes carefully. Read the lecture transcript if provided. Combine both. Ignore duplicate information but keep everything unique to either source. Create clean study notes.
+
+Output format (use these exact Markdown headings):
+
+# Title
+
+## Big Picture
+One paragraph.
+
+## Summary
+Detailed but easy to follow.
+
+## Key Points
+Bullet list.
+
+## Bible References
+List every verse mentioned. Explain each in one sentence.
+
+## Theology
+Explain doctrines simply.
+
+## Definitions
+Define theological terms.
+
+## Difficult Concepts
+Explain like teaching a first-year Bible college student.
+
+## Important Quotes
+Extract memorable statements from the notes/lecture.
+
+## Practical Application
+How should this affect Christian life?
+
+## Prayer
+Write a short prayer related to the material.
+
+## Revision Notes
+Only the most important information.
+
+## Flashcards
+List as Q: ... / A: ... pairs, at least 8.
+
+## Quiz
+5 multiple choice questions (with answer key at the end) and 5 short answer questions.
+
+## Memory Verses
+List verses worth memorizing.
+
+## One Minute Revision
+Summarize everything in under 150 words.`;
+
+const YOUTUBE_PROMPT = `Read the uploaded lecture transcript. Ignore greetings, announcements, and jokes. Focus only on teaching. Extract: main teaching, Bible references, stories, applications, definitions, warnings, doctrines. Combine with the uploaded class notes if provided.
+
+If the lecture contradicts the uploaded notes, show both — do not choose a side. Simply state "These notes differ here." and continue summarizing.
+
+Output format (use these exact Markdown headings):
+
+# Title
+
+## Big Picture
+One paragraph.
+
+## Summary
+Detailed but easy to follow.
+
+## Key Points
+Bullet list.
+
+## Bible References
+List every verse mentioned. Explain each in one sentence.
+
+## Theology
+Explain doctrines simply.
+
+## Definitions
+Define theological terms.
+
+## Difficult Concepts
+Explain like teaching a first-year Bible college student.
+
+## Where Notes and Lecture Differ
+If any conflicts exist, list them plainly as "These notes differ here" with both versions. If none, say so.
+
+## Important Quotes
+Extract memorable statements.
+
+## Practical Application
+How should this affect Christian life?
+
+## Prayer
+Write a short prayer related to the material.
+
+## Revision Notes
+Only the most important information.
+
+## Flashcards
+List as Q: ... / A: ... pairs, at least 8.
+
+## Memory Verses
+List verses worth memorizing.
+
+## One Minute Revision
+Summarize everything in under 150 words.`;
+
+let currentMode = 'summary';
+let lastMarkdown = '';
+
+document.querySelectorAll('.ribbon-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.ribbon-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentMode = tab.dataset.mode;
+    const lectureLabel = document.getElementById('lectureLabel');
+    const lectureBox = document.getElementById('lectureTranscript');
+    const helper = document.getElementById('modeHelper');
+    if(currentMode === 'youtube'){
+      lectureLabel.textContent = 'Lecture transcript (required)';
+      lectureBox.placeholder = 'Paste the lecture transcript here...';
+      helper.textContent = 'Focuses on the lecture teaching itself — ignoring greetings and announcements — and flags anywhere it differs from your class notes, without picking a side.';
+    } else {
+      lectureLabel.textContent = 'Lecture transcript';
+      lectureBox.placeholder = 'Paste the lecture transcript here (optional)...';
+      helper.textContent = 'Combines your notes and the lecture into one clean, organised study guide — summary, key points, Bible references, definitions, quiz, flashcards, and more.';
+    }
+  });
+});
+
+async function generateNotes(){
+  const notes = document.getElementById('classNotes').value.trim();
+  const lecture = document.getElementById('lectureTranscript').value.trim();
+  const outputArea = document.getElementById('outputArea');
+  const btn = document.getElementById('generateBtn');
+
+  if(!notes && !lecture){
+    outputArea.innerHTML = '<div class="error-box">Add your class notes, a lecture transcript, or both before generating.</div>';
+    return;
+  }
+  if(currentMode === 'youtube' && !lecture){
+    outputArea.innerHTML = '<div class="error-box">Lecture Check mode needs a lecture transcript to compare against your notes.</div>';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+  outputArea.innerHTML = '<div class="loading">Reading through your notes and Scripture references...</div>';
+
+  const taskPrompt = currentMode === 'youtube' ? YOUTUBE_PROMPT : SUMMARY_PROMPT;
+  const userContent = `${taskPrompt}\n\n---CLASS NOTES---\n${notes || '(none provided)'}\n\n---LECTURE TRANSCRIPT---\n${lecture || '(none provided)'}`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: "user", content: userContent }]
+      })
+    });
+
+    if(!response.ok){
+      throw new Error('Request failed with status ' + response.status);
+    }
+
+    const data = await response.json();
+    const textBlocks = (data.content || []).filter(b => b.type === 'text').map(b => b.text);
+    const markdown = textBlocks.join('\n');
+
+    if(!markdown){
+      outputArea.innerHTML = '<div class="error-box">No response was generated. Try again, or shorten your notes.</div>';
+    } else {
+      lastMarkdown = markdown;
+      renderOutput(markdown);
+    }
+  } catch(err) {
+    outputArea.innerHTML = '<div class="error-box">Something went wrong generating your notes: ' + err.message + '</div>';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Generate study notes';
+  }
+}
+
+function renderOutput(markdown){
+  const outputArea = document.getElementById('outputArea');
+  const html = marked.parse(markdown);
+  outputArea.innerHTML = `
+    <div class="actions-row">
+      <button id="copyBtn">Copy as text</button>
+      <button id="regenBtn">Regenerate</button>
+    </div>
+    <div class="output-content">${html}</div>
+  `;
+  document.getElementById('copyBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText(lastMarkdown);
+    const b = document.getElementById('copyBtn');
+    const original = b.textContent;
+    b.textContent = 'Copied';
+    setTimeout(() => b.textContent = original, 1500);
+  });
+  document.getElementById('regenBtn').addEventListener('click', generateNotes);
+}
+
+document.getElementById('generateBtn').addEventListener('click', generateNotes);
+</script>
+
+</body>
+</html>
